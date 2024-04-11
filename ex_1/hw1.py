@@ -19,14 +19,16 @@ def preprocess(X,y):
     - X: The mean normalized inputs.
     - y: The mean normalized labels.
     """
-    ###########################################################################
-    # TODO: Implement the normalization function.                             #
-    ###########################################################################
-    X = (X - np.mean(X)) / (np.max(X) - np.min(X))
-    y = (y - np.mean(y)) / (np.max(y) - np.min(y))
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    X_max = np.max(X, axis = 0)
+    X_min = np.min(X, axis = 0)
+
+    y_max = np.max(y, axis = 0)
+    y_min = np.min(y, axis = 0)
+
+    X = (X - np.mean(X, axis = 0)) / (X_max - X_min)
+
+    y = (y - np.mean(y, axis = 0)) / (y_max - y_min)
+
     return X, y
 
 def apply_bias_trick(X):
@@ -40,14 +42,8 @@ def apply_bias_trick(X):
     - X: Input data with an additional column of ones in the
         zeroth position (m instances over n+1 features).
     """
-    ###########################################################################
-    # TODO: Implement the bias trick by adding a column of ones to the data.                             #
-    ###########################################################################
-    ones_arr = np.ones_like(X)
-    X = np.column_stack((ones_arr,X))
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    ones_arr = np.ones(X.shape[0])
+    X = np.c_[(ones_arr,X)]
     return X
 
 def compute_cost(X, y, theta):
@@ -65,28 +61,10 @@ def compute_cost(X, y, theta):
     """
     
     J = 0  # We use J for the cost.
-    ###########################################################################
-    # TODO: Implement the MSE cost function.                                  #
-    ###########################################################################
     m = X.shape[0]
     # calculate h(x) for each x into array
-    h_x = np.sum((theta * X), axis=1)
-    # print("X: ", X[0:3])
-    # print("-------------------")
-    # print("h(x): ", h_x[0:3])
-    # print("-------------------")
-    # print("y: ", y[0:3])
-    # subtract each h(x) with y
-    h_x -= y
-    # print("subtract each h(x) with y: ", h_x[0:3])
-    # square up: h(x)-y
-    h_x *= h_x
-    # print("square up: h(x)-y: ", h_x[0:3])
-    J = (1/(2*m))*np.sum(h_x)
-    # print("J: ", J)
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    h_x = X @ theta
+    J = (1/(2*m)) * np.sum((h_x-y) ** 2)
     return J
 
 def gradient_descent(X, y, theta, alpha, num_iters):
@@ -112,20 +90,15 @@ def gradient_descent(X, y, theta, alpha, num_iters):
     
     theta = theta.copy() # optional: theta outside the function will not change
     J_history = [] # Use a python list to save the cost value in every iteration
-    ###########################################################################
-    # TODO: Implement the gradient descent optimization algorithm.            #
-    ###########################################################################
     m = X.shape[0]
-    for _ in range(num_iters): 
-        J_history.append(compute_cost(X,y,theta))
-        temp_theta_zero = theta[0] - alpha * (1/m) * (np.sum(np.sum((theta * X), axis=1)-y))
-        temp_theta_one = theta[1] - alpha * (1/m) * (np.sum((np.sum((theta * X), axis=1)-y)*X[:,1]))
-        theta = [temp_theta_zero,temp_theta_one]
-    # print(theta)
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    for _ in range(num_iters):
+        h_theta_x = np.dot(X, theta)
+        X_tran = np.transpose(X)
+        error = h_theta_x - y
+        theta = theta - alpha * np.dot(X_tran, error) / m
+        J_history.append(compute_cost(X, y, theta))
     return theta, J_history
+
 
 def compute_pinv(X, y):
     """
@@ -142,17 +115,12 @@ def compute_pinv(X, y):
 
     Returns:
     - pinv_theta: The optimal parameters of your model.
-    """
-    
+    """  
     pinv_theta = []
-    ###########################################################################
-    # TODO: Implement the pseudoinverse algorithm.                            #
-    ###########################################################################
-    pinv_X = np.linalg.inv(np.transpose(X) @ X) @ np.transpose(X)
-    pinv_theta = pinv_X @ y
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    X_tran = X.T
+    X_tran_mult_X = X_tran @ X
+    pinv_theta = np.linalg.inv(X_tran_mult_X).dot(X_tran)
+    pinv_theta = np.dot(pinv_theta, y)
     return pinv_theta
 
 def efficient_gradient_descent(X, y, theta, alpha, num_iters):
@@ -176,21 +144,17 @@ def efficient_gradient_descent(X, y, theta, alpha, num_iters):
     
     theta = theta.copy() # optional: theta outside the function will not change
     J_history = [] # Use a python list to save the cost value in every iteration
-    ###########################################################################
-    # TODO: Implement the efficient gradient descent optimization algorithm.  #
-    ###########################################################################
     m = X.shape[0]
     for i in range(num_iters):
-        J_history.append(compute_cost(X,y,theta))
-        if len(J_history) > 1 and J_history[i-1] - J_history[i] < 1e-8:
-            return theta
-        temp_theta_zero = theta[0] - alpha * (1/m) * (np.sum(np.sum((theta * X), axis=1)-y))
-        temp_theta_one = theta[1] - alpha * (1/m) * (np.sum((np.sum((theta * X), axis=1)-y)*X[:,1]))
-        theta = [temp_theta_zero,temp_theta_one]
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+        h_theta_x = np.dot(X, theta)
+        X_tran = np.transpose(X)
+        error = h_theta_x - y
+        theta = theta - alpha * np.dot(X_tran, error) / m
+        J_history.append(compute_cost(X, y, theta))
+        if i > 1 and (J_history[i-1] - J_history[i]) < 1e-8:
+            return theta, J_history
     return theta, J_history
+
 
 def find_best_alpha(X_train, y_train, X_val, y_val, iterations):
     """
@@ -210,18 +174,12 @@ def find_best_alpha(X_train, y_train, X_val, y_val, iterations):
     
     alphas = [0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 2, 3]
     alpha_dict = {} # {alpha_value: validation_loss}
-    ###########################################################################
-    # TODO: Implement the function and find the best alpha value.             #
-    ###########################################################################
-    theta = np.random.random(size=2)
+    np.random.seed(42)
+    theta = np.random.random(X_train.shape[1])
     for a in alphas:
        theta_train = efficient_gradient_descent(X_train, y_train, theta, a, iterations)[0] 
        validation_loss = compute_cost(X_val, y_val, theta_train)
        alpha_dict[a] = validation_loss
-    print(alpha_dict) 
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
     return alpha_dict
 
 def forward_feature_selection(X_train, y_train, X_val, y_val, best_alpha, iterations):
@@ -246,7 +204,22 @@ def forward_feature_selection(X_train, y_train, X_val, y_val, best_alpha, iterat
     #####c######################################################################
     # TODO: Implement the function and find the best alpha value.             #
     ###########################################################################
-    pass
+    while len(selected_features) < 5:
+        features_dict={}
+        for i in range(X_train.shape[1]):
+            if i not in selected_features:
+                selected_features.append(i)
+                selected_feature_train = apply_bias_trick(X_train[:,selected_features])
+                selected_feature_val = apply_bias_trick(X_val[:,selected_features])
+                np.random.seed(42)
+                theta = np.random.random(size = len(selected_features) + 1)
+                theta_train = efficient_gradient_descent(selected_feature_train, y_train, theta, best_alpha, iterations)[0] 
+                validation_loss = compute_cost(selected_feature_val, y_val, theta_train)
+                features_dict[i] = validation_loss
+                selected_features.pop()
+        top_feature = min(features_dict, key=features_dict.get)
+        selected_features.append(top_feature)
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -268,7 +241,14 @@ def create_square_features(df):
     ###########################################################################
     # TODO: Implement the function to add polynomial features                 #
     ###########################################################################
-    pass
+    # feature_names = df_poly.columns
+    features_dict={}
+    for i, feature_i in enumerate(df_poly.columns):
+        features_dict[feature_i] = df_poly[feature_i]
+        features_dict[feature_i + "^2"] = df_poly[feature_i] * df_poly[feature_i]
+        for feature_j in df_poly.columns[i+1:]:
+            features_dict[feature_i + "*" + feature_j] = df_poly[feature_i] * df_poly[feature_j]
+    df_poly=pd.DataFrame(features_dict)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
