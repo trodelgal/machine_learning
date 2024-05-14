@@ -15,10 +15,10 @@ class conditional_independence():
         self.C = {0: 0.5, 1: 0.5}  # P(C=c)
 
         self.X_Y = {
-            (0, 0): 0.09,
-            (0, 1): 0.21,
-            (1, 0): 0.21,
-            (1, 1): 0.49
+            (0, 0): 0.15,
+            (0, 1): 0.15,
+            (1, 0): 0.2,
+            (1, 1): 0.5
         }  # P(X=x, Y=y)
 
         self.X_C = {
@@ -414,8 +414,8 @@ class MaxLikelihood():
         """
         pred = None
         # Calculate the posterior probability for class 0 and class 1 using their respective conditional distributions
-        likelihood_ccd0 = self.ccd0.get_instance_likelihood(x[:-1])
-        likelihood_ccd1 = self.ccd1.get_instance_likelihood(x[:-1])
+        likelihood_ccd0 = self.ccd0.get_instance_likelihood(x)
+        likelihood_ccd1 = self.ccd1.get_instance_likelihood(x)
 
         # Compare the likelihood probabilities to determine the predicted class
         if likelihood_ccd0 > likelihood_ccd1:
@@ -438,13 +438,10 @@ class DiscreteNBClassDistribution():
         - dataset: The dataset as a numpy array.
         - class_value: Compute the relevant parameters only for instances from the given class.
         """
-        ###########################################################################
-        # TODO: Implement the function.                                           #
-        ###########################################################################
-        pass
-        ###########################################################################
-        #                             END OF YOUR CODE                            #
-        ###########################################################################
+        self.class_value = class_value
+        self.data = np.copy(dataset)
+        # Filter the dataset to only include instances with the specified class value
+        self.class_data = dataset[dataset[:, -1] == class_value][:, :-1]
     
     def get_prior(self):
         """
@@ -452,13 +449,11 @@ class DiscreteNBClassDistribution():
         according to the dataset distribution.
         """
         prior = None
-        ###########################################################################
-        # TODO: Implement the function.                                           #
-        ###########################################################################
-        pass
-        ###########################################################################
-        #                             END OF YOUR CODE                            #
-        ###########################################################################
+        # Total number of samples in the dataset
+        total_samples = len(self.data)  
+        # Number of samples belonging to the class
+        class_samples = len(self.class_data)  
+        prior = class_samples / total_samples
         return prior
     
     def get_instance_likelihood(self, x):
@@ -466,14 +461,18 @@ class DiscreteNBClassDistribution():
         Returns the likelihood of the instance under 
         the class according to the dataset distribution.
         """
-        likelihood = None
-        ###########################################################################
-        # TODO: Implement the function.                                           #
-        ###########################################################################
-        pass
-        ###########################################################################
-        #                             END OF YOUR CODE                            #
-        ###########################################################################
+        # Initialize likelihood to 1
+        likelihood = 1.0 
+        # Number of instances in the class
+        n_i = len(self.class_data)
+        for i in range(len(x)):
+            n_ij = np.sum(self.class_data[:, i] == x[i]) # Count occurrences of x[i] in the i-th feature column
+            V_j = len(np.unique(self.class_data[:, i])) # Number of unique values in the i-th feature column
+            if n_ij==0:
+                likelihood *= EPSILLON # Smoothing to avoid zero probability
+            else:
+                # Calculate the likelihood using Laplace smoothing
+                likelihood *= np.prod((n_ij + 1) / (n_i + V_j))
         return likelihood
         
     def get_instance_posterior(self, x):
@@ -483,13 +482,12 @@ class DiscreteNBClassDistribution():
         * Ignoring p(x)
         """
         posterior = None
-        ###########################################################################
-        # TODO: Implement the function.                                           #
-        ###########################################################################
-        pass
-        ###########################################################################
-        #                             END OF YOUR CODE                            #
-        ###########################################################################
+        # Get the likelihood probability of the instance under the class
+        likelihood = self.get_instance_likelihood(x)
+        # Get the prior probability of the class
+        prior = self.get_prior()
+        # Compute the posterior probability as the product of the likelihood and the prior
+        posterior = likelihood * prior
         return posterior
 
 
@@ -504,13 +502,8 @@ class MAPClassifier_DNB():
             - ccd0 : An object contating the relevant parameters and methods for the distribution of class 0.
             - ccd1 : An object contating the relevant parameters and methods for the distribution of class 1.
         """
-        ###########################################################################
-        # TODO: Implement the function.                                           #
-        ###########################################################################
-        pass
-        ###########################################################################
-        #                             END OF YOUR CODE                            #
-        ###########################################################################
+        self.ccd0 = ccd0
+        self.ccd1 = ccd1
 
     def predict(self, x):
         """
@@ -522,13 +515,17 @@ class MAPClassifier_DNB():
             - 0 if the posterior probability of class 0 is higher and 1 otherwise.
         """
         pred = None
-        ###########################################################################
-        # TODO: Implement the function.                                           #
-        ###########################################################################
-        pass
-        ###########################################################################
-        #                             END OF YOUR CODE                            #
-        ###########################################################################
+        # Calculate the posterior probability for class 0 and class 1 using their respective conditional distributions
+        prob_ccd0 = self.ccd0.get_instance_posterior(x)
+        prob_ccd1 = self.ccd1.get_instance_posterior(x)
+
+        # Compare the posterior probabilities to determine the predicted class
+        if prob_ccd0 > prob_ccd1:
+            pred = 0  # Predict class 0 if its posterior probability is higher
+        else:
+            pred = 1  # Predict class 1 otherwise
+
+        # Return the predicted class
         return pred
 
     def compute_accuracy(self, test_set):
@@ -541,13 +538,19 @@ class MAPClassifier_DNB():
             - Accuracy = #Correctly Classified / #test_set size
         """
         acc = None
-        ###########################################################################
-        # TODO: Implement the function.                                           #
-        ###########################################################################
-        pass
-        ###########################################################################
-        #                             END OF YOUR CODE                            #
-        ###########################################################################
+        # Get the size of the test set
+        test_set_size = len(test_set)
+        # Initialize a counter for correctly classified samples
+        correctly_classified = 0
+        # Iterate through each sample in the test set
+        for sample in test_set:
+            # Check if the classifier predicts the same class label as the actual class label
+            if self.predict(sample[:-1]) == sample[-1]:
+                # If the prediction is correct, increment the counter
+                correctly_classified += 1
+        # Calculate the accuracy by dividing the number of correctly classified samples by the total number of samples
+        acc = correctly_classified / test_set_size
+        # Return the accuracy
         return acc
 
 
