@@ -1,7 +1,3 @@
-###### Your ID ######
-# ID1: 322529447
-# ID2: 206133597
-#####################
 
 import numpy as np
 
@@ -461,15 +457,15 @@ class DiscreteNBClassDistribution():
         Returns the likelihood of the instance under 
         the class according to the dataset distribution.
         """
-        # Initialize likelihood to 1
+         # Initialize likelihood to 1
         likelihood = 1.0 
         # Number of instances in the class
         n_i = len(self.class_data)
         for i in range(len(x)):
             n_ij = np.sum(self.class_data[:, i] == x[i]) # Count occurrences of x[i] in the i-th feature column
             V_j = len(np.unique(self.class_data[:, i])) # Number of unique values in the i-th feature column
-            if n_ij==0:
-                likelihood *= EPSILLON # Smoothing to avoid zero probability
+            if n_ij == 0 and np.sum(self.data[:, i] == x[i]) == 0:
+                likelihood *= EPSILLON
             else:
                 # Calculate the likelihood using Laplace smoothing
                 likelihood *= np.prod((n_ij + 1) / (n_i + V_j))

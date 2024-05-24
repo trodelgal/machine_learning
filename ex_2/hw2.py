@@ -1,7 +1,3 @@
-###### Your ID ######
-# ID1: 322529447
-# ID2: 206133597
-#####################
 
 import numpy as np
 import matplotlib.pyplot as plt
