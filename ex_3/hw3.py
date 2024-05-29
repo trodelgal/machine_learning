@@ -94,8 +94,10 @@ def get_poisson_log_likelihoods(samples, rates):
     """
     likelihoods = np.zeros_like(rates)
     for i,rate in enumerate(rates):
+        likelihood = 0
         for k in samples:
-            likelihoods[i] += poisson_log_pmf(k,rate) 
+            likelihoods += poisson_log_pmf(k,rate)
+        likelihoods[i] = likelihood  
     return likelihoods
 
 def possion_iterative_mle(samples, rates):
