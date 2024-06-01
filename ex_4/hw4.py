@@ -1,6 +1,10 @@
 
+
 import numpy as np
 import pandas as pd
+from matplotlib.colors import ListedColormap
+import matplotlib.pyplot as plt
+
 
 def pearson_correlation( x, y):
     """
@@ -23,9 +27,9 @@ def pearson_correlation( x, y):
     numerator = np.sum(x_minus_mean_x * y_minus_mean_y)
 
     denominator = np.sqrt(np.sum(x_minus_mean_x ** 2) * np.sum(y_minus_mean_y ** 2))
-    # Check for homogeneous columns
+    #Check for homogeneous columns
     if np.sum(x_minus_mean_x ** 2) and np.sum(y_minus_mean_y ** 2) == 0:
-        return np.nan
+        r = np.nan
     elif denominator == 0:
         r = 0
     else:
@@ -114,6 +118,7 @@ class LogisticRegressionGD(object):
         np.random.seed(self.random_state)
         # Initialize theta with random values
         self.theta = np.random.random(X.shape[1])
+        number_of_samples = X.shape[0]
         # Perform gradient descent
         for _ in range(self.n_iter):
           # Calculate the predicted probabilities
@@ -124,7 +129,7 @@ class LogisticRegressionGD(object):
           # Calculate the gradient
           gradient = np.dot(X.T, (sigmoid_theta_x - y))
           # Update theta
-          self.theta -= self.eta * gradient
+          self.theta -= self.eta * (gradient/number_of_samples)
           self.thetas.append(self.theta)
           # Calculate the cost
           cost = self.culc_cost(X, y)
@@ -145,7 +150,6 @@ class LogisticRegressionGD(object):
         preds = None
         # Apply the bias trick
         X = self.apply_bias_trick(X)
-
         sigmoid_theta_x = self.sigmoid(np.dot(X, self.theta))
         # Convert the probabilities to class labels
         preds = [1 if x >= 0.5 else 0 for x in sigmoid_theta_x]
@@ -363,6 +367,7 @@ class EM(object):
     def get_dist_params(self):
         return self.weights, self.mus, self.sigmas
 
+
     def calc_cost(self, data):
       """
       Calculate the cost for the given data.
@@ -515,18 +520,18 @@ def model_evaluation(x_train, y_train, x_test, y_test, k, best_eta, best_eps):
     bayes_test_acc = None
 
     # Initialize the models
-    LogisticRegressionGD_model = LogisticRegressionGD(eta=best_eta, eps=best_eps)
-    NaiveBayesGaussian_model = NaiveBayesGaussian(k=k)
+    logistic_regression_model = LogisticRegressionGD(eta=best_eta, eps=best_eps)
+    naive_bayes_gaussian_model = NaiveBayesGaussian(k=k)
 
     # Train the models
-    LogisticRegressionGD_model.fit(x_train, y_train)
-    NaiveBayesGaussian_model.fit(x_train, y_train)
+    logistic_regression_model.fit(x_train, y_train)
+    naive_bayes_gaussian_model.fit(x_train, y_train)
 
     # Test the models
-    lor_train_preds = LogisticRegressionGD_model.predict(x_train)
-    lor_test_preds = LogisticRegressionGD_model.predict(x_test)
-    bayes_train_preds = NaiveBayesGaussian_model.predict(x_train)
-    bayes_test_preds = NaiveBayesGaussian_model.predict(x_test)
+    lor_train_preds = logistic_regression_model.predict(x_train)
+    lor_test_preds = logistic_regression_model.predict(x_test)
+    bayes_train_preds = naive_bayes_gaussian_model.predict(x_train)
+    bayes_test_preds = naive_bayes_gaussian_model.predict(x_test)
     
     # Calculate the accuracies
     lor_train_acc = np.sum(lor_train_preds == y_train) / len(y_train)
@@ -534,6 +539,34 @@ def model_evaluation(x_train, y_train, x_test, y_test, k, best_eta, best_eps):
     bayes_train_acc = np.sum(bayes_train_preds == y_train) / len(y_train)
     bayes_test_acc = np.sum(bayes_test_preds == y_test) / len(y_test)
 
+    # generate plot titles
+    if len(y_train) == 1000:
+        naive_plot_title = "Naive Bayes - first 1,000 training instances"
+        lor_plot_title = "Logistic Regression - first 1,000 training instances"
+    else:
+        naive_plot_title = "Naive Bayes - all training instances"
+        lor_plot_title = "Logistic Regression - all training instances"
+
+    # Plot the decision boundaries
+    plot_decision_regions(x_train, y_train, naive_bayes_gaussian_model, title = naive_plot_title)
+    print("Accuracy: ", bayes_train_acc)
+    if len(y_train) == 1000:
+      print("Main observation: The Naive Bayes model shows strong performance, clearly illustrating that each class originates from a distinct Gaussian distribution.")
+    else:
+      print("Main observation: Great performance of the Naive Bayes classifier model. It recognizes and separates the classes effectively.")
+    plot_decision_regions(x_train, y_train, logistic_regression_model , title = lor_plot_title)
+    print("Accuracy: ", lor_train_acc)
+    if len(y_train) == 1000:
+      print("Main observation: high performance for the Logistic Regression model, The data is almost linearly separable.")
+    else:
+      print("Main observation: Poor performance of the Logistic Regression model. Since the data isn't linearly separable, the algorithm doesn't recognize and separate the two classes effectively.")
+
+    plot_lor_cost_function(logistic_regression_model)
+    if len(y_train) == 1000:
+      print("Main observation: There is a nice cost improvement along the way. however, since the data isn't perfectly linearly separable, the algorithm didn't reach zero cost.")
+    else:
+      print("Main observation: The learning algorithm stopped very early because no better classifier was found.")
+   
     return {'lor_train_acc': lor_train_acc,
             'lor_test_acc': lor_test_acc,
             'bayes_train_acc': bayes_train_acc,
@@ -553,26 +586,34 @@ def generate_datasets():
     np.random.seed(0)
       
     # Generate dataset_a
-    mean_a1 = [2, 2, 2]
+    # Generate 3 Gaoussian distributions without linear separability and low covariance
+    mean_a1 = [4.5, 4.5, 4.5]
     cov_a1 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
     
-    mean_a2 = [8, 8, 8]
+    mean_a2 = [10, 10, 10]
     cov_a2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+    mean_a3 = [0.5, 0.5, 0.5]
+    cov_a3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
     
-    size_a = 100
+    size_a1 = 100
+    size_a2 = 50
+    size_a3 = 50
     
-    class_a1 = multivariate_normal.rvs(mean=mean_a1, cov=cov_a1, size=size_a)
-    class_a2 = multivariate_normal.rvs(mean=mean_a2, cov=cov_a2, size=size_a)
+    class_a1 = multivariate_normal.rvs(mean=mean_a1, cov=cov_a1, size=size_a1)
+    class_a2 = multivariate_normal.rvs(mean=mean_a2, cov=cov_a2, size=size_a2)
+    class_a3 = multivariate_normal.rvs(mean=mean_a3, cov=cov_a3, size=size_a3)
     
-    dataset_a_features = np.vstack((class_a1, class_a2))
-    dataset_a_labels = np.hstack((np.zeros(size_a), np.ones(size_a)))
+    dataset_a_features = np.vstack((class_a1, class_a2,class_a3))
+    dataset_a_labels = np.hstack((np.zeros(size_a1), np.ones(size_a1)))
     
     # Generate dataset_b
-    mean_b1 = [0, 0, 0]
-    cov_b1 = [[1, 0.8, 0.6], [0.8, 1, 0.8], [0.6, 0.8, 1]]
+    # Generate 2 Gaoussian distributions with linear separability and high covariance
+    mean_b1 = [1, 2, 5]
+    cov_b1 = [[1, 0.9, 0.9], [0.9, 1, 0.9], [0.9, 0.9, 1]]
     
-    mean_b2 = [1, 1, 1]
-    cov_b2 = [[1, 0.8, 0.6], [0.8, 1, 0.8], [0.6, 0.8, 1]]
+    mean_b2 = [1, 2, 3]
+    cov_b2 = [[1, 0.9, 0.9], [0.9, 1, 0.9], [0.9, 0.9, 1]]
     
     size_b = 100
     
@@ -587,3 +628,42 @@ def generate_datasets():
            'dataset_b_features': dataset_b_features,
            'dataset_b_labels': dataset_b_labels
            }
+
+# Function for ploting the decision boundaries of a model
+def plot_decision_regions(X, y, classifier, resolution=0.01, title=""):
+
+    # setup marker generator and color map
+    markers = ('.', '.')
+    colors = ('blue', 'red')
+    cmap = ListedColormap(colors[:len(np.unique(y))])
+    # plot the decision surface
+    x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx1, xx2 = np.meshgrid(np.arange(x1_min, x1_max, resolution),
+                           np.arange(x2_min, x2_max, resolution))
+    Z = classifier.predict(np.array([xx1.ravel(), xx2.ravel()]).T)
+    Z = Z.reshape(xx1.shape)
+    plt.contourf(xx1, xx2, Z, alpha=0.3, cmap=cmap)
+    plt.xlim(xx1.min(), xx1.max())
+    plt.ylim(xx2.min(), xx2.max())
+
+    for idx, cl in enumerate(np.unique(y)):
+        plt.title(title)
+        plt.scatter(x=X[y == cl, 0], 
+                    y=X[y == cl, 1],
+                    alpha=0.8, 
+                    c=colors[idx],
+                    marker=markers[idx], 
+                    label=cl, 
+                    edgecolor='black')
+    plt.show()
+
+# Function for ploting the cost function of the logistic regression model
+def plot_lor_cost_function(lor):
+    plt.plot(range(1, len(lor.Js) + 1), lor.Js)
+    plt.xlabel('Iterations')
+    plt.ylabel('Cost')
+    plt.title('Logistic Regression - Cost vs Iteration')
+    plt.show()
+
+
