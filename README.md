@@ -33,7 +33,7 @@ Through these projects, I developed practical skills in:
 - **Unsupervised Learning** (e.g., K-Means Clustering)
 - **Probabilistic Models** (Bayes, MAP, EM Algorithms)
 - **Data Preprocessing** and **Visualization**
-- **Python Libraries**: Scikit-Learn, Pandas, Numpy, Matplotlib, and Seaborn
+- **Python Libraries**: Pandas, Numpy and Matplotlib
 - **Model Evaluation and Tuning**
 
 ---
