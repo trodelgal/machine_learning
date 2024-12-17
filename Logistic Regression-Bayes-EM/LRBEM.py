@@ -1,4 +1,7 @@
-
+###### Your ID ######
+# ID1: 322529447
+# ID2: 206133597
+#####################
 
 import numpy as np
 import pandas as pd
@@ -334,8 +337,9 @@ class EM(object):
         # Update the weights
         self.weights = np.mean(self.responsibilities, axis=0)
         # Update mus
+        # data.shape = (2000,1)
+        # responsibilities.shape - (2000, k)
         self.mus = np.dot(self.responsibilities.T, data).reshape(self.k) / (self.weights * len(data))
-        #self.mus = np.sum(self.responsibilities * data.reshape(-1, 1), axis=0) / np.sum(self.responsibilities, axis=0)
         # Update the sigmas
         variance = np.mean(self.responsibilities * np.square(data.reshape(-1, 1) - self.mus), axis=0)
         self.sigmas = np.sqrt(variance / self.weights)
@@ -610,10 +614,10 @@ def generate_datasets():
     # Generate dataset_b
     # Generate 2 Gaoussian distributions with linear separability and high covariance
     mean_b1 = [1, 2, 5]
-    cov_b1 = [[1, 0.9, 0.9], [0.9, 1, 0.9], [0.9, 0.9, 1]]
+    cov_b1 = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
     
     mean_b2 = [1, 2, 3]
-    cov_b2 = [[1, 0.9, 0.9], [0.9, 1, 0.9], [0.9, 0.9, 1]]
+    cov_b2 = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
     
     size_b = 100
     
