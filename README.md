@@ -77,5 +77,5 @@ machine_learning/
 ## Contact
 For questions, suggestions, or collaboration, feel free to reach out:
 - **GitHub**: [trodelgal](https://github.com/trodelgal)
-- **Email**: [galtrudel@gmail.com]
+- **Email**: galtrudel@gmail.com
 
